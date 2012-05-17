@@ -1,0 +1,9 @@
+lax:
+  host1.com:
+    ip: 1.2.3.4
+alc:
+  host2.org:
+    ip: 2.3.4.5
+  host3.net:
+    ip: 3.4.5.6
+

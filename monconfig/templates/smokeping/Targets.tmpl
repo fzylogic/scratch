@@ -1,0 +1,27 @@
+*** Targets ***
+
+probe = FPing
+
+menu = Top
+title = Network Latency Grapher
+remark = Welcome to the SmokePing website of DreamHost.
+
+% for location in hostinfo :
++ ${location}
+
+menu = ${location}
+title = ${location} Network
+ % for host in hostinfo[location] :
+<%
+cleanhost = host.replace('.','')
+%>
+++  ${cleanhost}
+
+menu = ${host}
+title = ${host}
+host = ${hostinfo[location][host]['ip']}
+
+ % endfor
+
+% endfor
+
