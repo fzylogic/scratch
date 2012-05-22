@@ -1,9 +1,9 @@
 lax:
-  host1.com:
-    ip: 1.2.3.4
+  karategerbil.com:
+    ip: 64.111.96.230
 alc:
-  host2.org:
-    ip: 2.3.4.5
-  host3.net:
-    ip: 3.4.5.6
+  panel.dreamhost.com:
+    ip: 208.97.187.201
+  dreamhost.com:
+    ip: 208.97.187.204
 
