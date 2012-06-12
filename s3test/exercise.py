@@ -61,7 +61,6 @@ def fillBucket():
   endtime = time()
   duration = int(endtime) - int(starttime)
   print 'Created ' + str(objcount) + ' objects in ' + str(duration) + ' seconds'
-  if verbose: print str(bucket) + ' contains ' + str(len(bucket.get_all_keys())) + ' objects' 
 
 def cleanup():
   bs = None
