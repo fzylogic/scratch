@@ -85,7 +85,7 @@ def cleanup():
         sleep(10)
       else:
         print "Bucket deleted successfully after " + str(tries) + " attempt(s)"
-        return
+        break
 
 for i in range(0,iterations):
   if not cleanall:
