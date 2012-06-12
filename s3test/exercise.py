@@ -11,15 +11,10 @@ from os import listdir
 import optparse
 import sys
 
-bucketcount = None
-objcount = None
-noclean = None
-cleanall = None
-iterations = None
-
 parser = optparse.OptionParser()
 parser.add_option('--access', '-a', action="store")
 parser.add_option('--secret', '-s', action="store")
+parser.add_option('--sizes', '-S', default = '1024,10240,102400,1024000,10240000', action="store", type="string")
 parser.add_option('--buckets', '-b', default=1, action="store", type="int")
 parser.add_option('--iterations', '-i', default=1, action="store", type="int")
 parser.add_option('--host', default='objects.dreamhost.com', action="store")
@@ -36,11 +31,12 @@ objcount = options.objects
 noclean = options.noclean
 cleanall = options.cleanall
 iterations = options.iterations
+sizes = options.sizes
 
 data = []
-for size in (1024,10240,102400,1024000,10240000):
+for size in sizes.split(','):
   f = open('/dev/urandom','r')
-  data.append(f.read(size))
+  data.append(f.read(int(size)))
 
 buckets = []
 
