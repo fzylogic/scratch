@@ -64,11 +64,13 @@ def fillBucket():
 
 def cleanup():
   bs = None
+  print 'Cleaning up'
   if cleanall: 
     bs = conn.get_all_buckets()
   else:
     bs = buckets
   for bucket in bs:
+    print ' Cleaning ' + str(bucket)
     keys = bucket.list()
     for key in keys:
       if verbose: print key
