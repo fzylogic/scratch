@@ -78,7 +78,7 @@ def cleanup():
       print key
       bucket.delete_key(key)
     tries = 1
-    while tries < 3:
+    while tries <= 3:
       try:
         conn.delete_bucket(bucket)
       except S3ResponseError:
