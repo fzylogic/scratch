@@ -20,6 +20,7 @@ parser.add_option('--iterations', '-i', default=1, action="store", type="int")
 parser.add_option('--host', default='objects.dreamhost.com', action="store")
 parser.add_option('--objects', '-o', default=100, action="store", type="int")
 parser.add_option('--noclean', action="store_true", default=False);
+parser.add_option('--verbose', '-v', action="store_true", default=False);
 parser.add_option('--cleanall', action="store_true", default=False);
 
 options, remainder = parser.parse_args()
@@ -32,6 +33,7 @@ noclean = options.noclean
 cleanall = options.cleanall
 iterations = options.iterations
 sizes = options.sizes
+verbose = options.verbose
 
 data = []
 for size in sizes.split(','):
@@ -48,7 +50,6 @@ def makeBucket():
   return bucket
 
 def fillBucket():
-  print 'creating bucket'
   bucket = makeBucket()
   print 'populating ' + str(bucket)
   starttime = time()
@@ -60,7 +61,7 @@ def fillBucket():
   endtime = time()
   duration = int(endtime) - int(starttime)
   print 'Created ' + str(objcount) + ' objects in ' + str(duration) + ' seconds'
-  print str(bucket) + ' contains ' + str(len(bucket.get_all_keys())) + ' objects'
+  if verbose: print str(bucket) + ' contains ' + str(len(bucket.get_all_keys())) + ' objects' 
 
 def cleanup():
   bs = None
@@ -71,7 +72,7 @@ def cleanup():
   for bucket in bs:
     keys = bucket.list()
     for key in keys:
-      print key
+      if verbose: print key
       bucket.delete_key(key)
     tries = 1
     while tries <= 3:
