@@ -55,7 +55,7 @@ def fillBucket():
   starttime = time()
   k = Key(bucket)
   k.key = 's3exerciserbucket'
-  
+  k.set_contents_from_string('s3exerciserbucket')
   for count in range(0,objcount):
     k = Key(bucket)
     uuid = uuid4()
