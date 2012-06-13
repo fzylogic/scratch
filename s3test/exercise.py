@@ -53,6 +53,9 @@ def fillBucket():
   bucket = makeBucket()
   print 'populating ' + str(bucket)
   starttime = time()
+  k = Key(bucket)
+  k.key = 's3exerciserbucket'
+  
   for count in range(0,objcount):
     k = Key(bucket)
     uuid = uuid4()
@@ -65,27 +68,35 @@ def fillBucket():
 def cleanup():
   bs = None
   print 'Cleaning up'
+  cleaned = 0
+  skipped = 0
   if cleanall: 
     bs = conn.get_all_buckets()
   else:
     bs = buckets
   for bucket in bs:
-    print ' Cleaning ' + str(bucket)
-    keys = bucket.list()
-    for key in keys:
-      if verbose: print key
-      bucket.delete_key(key)
-    tries = 1
-    while tries <= 3:
-      try:
-        conn.delete_bucket(bucket)
-      except S3ResponseError:
-        print "Bucket deletion failed!"
-        tries += 1
-        sleep(10)
-      else:
-        print "Bucket deleted successfully after " + str(tries) + " attempt(s)"
-        break
+    if bucket.get_key('s3exerciserbucket'):
+      cleaned += 1
+      print ' Cleaning ' + str(bucket)
+      keys = bucket.list()
+      for key in keys:
+        if verbose: print key
+        bucket.delete_key(key)
+      tries = 1
+      while tries <= 3:
+        try:
+          conn.delete_bucket(bucket)
+        except S3ResponseError:
+          print "Bucket deletion failed!"
+          tries += 1
+          sleep(10)
+        else:
+          print "Bucket deleted successfully after " + str(tries) + " attempt(s)"
+          break
+    else:
+      skipped += 1
+  print 'cleaned ' + str(cleaned) + ' buckets'
+  print 'skipped ' + str(skipped) + ' buckets'
 
 for i in range(0,iterations):
   if not cleanall:
