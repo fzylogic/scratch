@@ -66,14 +66,17 @@ def downloadTest():
   for bucket in buckets:
     starttime = time()
     size_downloaded = 0
+    read = 0
     for key in bucket.list():
-      if options.verbose: print 'attempting fetch of key ' + key
+      if options.verbose: print 'attempting fetch of key ' + str(key)
+      if str(key).endswith(',s3exerciserbucket>'): continue
       k = bucket.get_key(key)
       data = k.get_contents_as_string()
       size_downloaded += len(data)
+      read += 1
     endtime = time()
     duration = int(endtime) - int(starttime)
-    print 'Read ' + str(to_read) + ' objects (' + str(size_downloaded) + ' bytes) in ' + str(duration) + ' seconds'
+    print 'Read ' + str(read) + ' objects (' + str(size_downloaded) + ' bytes) in ' + str(duration) + ' seconds'
 
 def cleanup():
   bs = None
