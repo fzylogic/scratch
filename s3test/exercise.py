@@ -22,8 +22,12 @@ parser.add_option('--noclean', action='store_true', default=False)
 parser.add_option('--verbose', '-v', action='store_true', default=False)
 parser.add_option('--cleanall', action='store_true', default=False)
 parser.add_option('--readtest', action='store_true', default=False)
+parser.add_option('--bucket', action='store')
 
 options, remainder = parser.parse_args()
+
+if options.bucket and options.buckets != 1:
+  parser.error('options --bucket and --buckets are mutually exclusive')
 
 conn = S3Connection(options.access,options.secret,host=options.host)
 
@@ -45,20 +49,28 @@ def makeBucket():
 
 def fillBucket():
   size_uploaded = 0
-  bucket = makeBucket()
-  print 'populating ' + str(bucket)
-  starttime = time()
-  k = Key(bucket)
-  k.key = 's3exerciserbucket'
-  k.set_contents_from_string('s3exerciserbucket')
-  for count in range(0,options.objects):
+  if options.bucket:
+    try:
+      bucket = conn.get_bucket(options.bucket)
+    except S3ResponseError:
+      print 'Error: Cannot find bucket ' + options.bucket
+      sys.exit()
+  else:
+    bucket = makeBucket()
+  if bucket:
+    print 'populating ' + str(bucket)
+    starttime = time()
     k = Key(bucket)
-    uuid = uuid4()
-    k.key = str(uuid)
-    keydata = choice(data)
-    k.set_contents_from_string(keydata)
-    size_uploaded += len(keydata)
-  endtime = time()
+    k.key = 's3exerciserbucket'
+    k.set_contents_from_string('s3exerciserbucket')
+    for count in range(0,options.objects):
+      k = Key(bucket)
+      uuid = uuid4()
+      k.key = str(uuid)
+      keydata = choice(data)
+      k.set_contents_from_string(keydata)
+      size_uploaded += len(keydata)
+    endtime = time()
   duration = int(endtime) - int(starttime)
   print 'Created ' + str(options.objects) + ' objects (' + str(size_uploaded) + ' bytes) in ' + str(duration) + ' seconds'
 
@@ -84,7 +96,15 @@ def cleanup():
   cleaned = 0
   skipped = 0
   if options.cleanall:
-    bs = conn.get_all_buckets()
+    if options.bucket:
+      try:
+        b = conn.get_bucket(options.bucket)
+        bs = [b]
+      except S3ResponseError:
+        print 'Error: Cannot find bucket ' + options.bucket
+        sys.exit()
+    else:
+      bs = conn.get_all_buckets()
   else:
     bs = buckets
   for bucket in bs:
