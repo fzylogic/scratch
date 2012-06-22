@@ -9,11 +9,14 @@ from uuid import uuid4
 from random import choice
 import optparse
 import sys
+import os
+
+default_sizes = '1024,10240,102400,1024000,10240000'
 
 parser = optparse.OptionParser()
 parser.add_option('--access', '-a', action='store')
 parser.add_option('--secret', '-s', action='store') 
-parser.add_option('--sizes', '-S', default = '1024,10240,102400,1024000,10240000', action='store', type='string') 
+parser.add_option('--sizes', '-S', default = default_sizes, action='store', type='string') 
 parser.add_option('--buckets', '-b', default=1, action='store', type='int')
 parser.add_option('--iterations', '-i', default=1, action='store', type='int')
 parser.add_option('--host', default='objects.dreamhost.com', action='store')
@@ -23,11 +26,24 @@ parser.add_option('--verbose', '-v', action='store_true', default=False)
 parser.add_option('--cleanall', action='store_true', default=False)
 parser.add_option('--readtest', action='store_true', default=False)
 parser.add_option('--bucket', action='store')
+parser.add_option('--file', '-f', action='store')
 
 options, remainder = parser.parse_args()
 
 if options.bucket and options.buckets != 1:
   parser.error('options --bucket and --buckets are mutually exclusive')
+
+if options.file and options.sizes != default_sizes:
+  parser.error('options --file and --sizes are mutually exclusive')
+
+if options.file:
+  file = open(options.file,'r')
+  filesize = os.path.getsize(options.file)
+  if not file:
+    print 'File ' + options.file + ' does not exist'
+    sys.exit()
+else:
+  file = None
 
 conn = S3Connection(options.access,options.secret,host=options.host)
 
@@ -67,12 +83,17 @@ def fillBucket():
       k = Key(bucket)
       uuid = uuid4()
       k.key = str(uuid)
-      keydata = choice(data)
-      k.set_contents_from_string(keydata)
-      size_uploaded += len(keydata)
+      if file:
+        k.set_contents_from_file(file)
+        size_uploaded += filesize
+      else:
+        keydata = choice(data)
+        k.set_contents_from_string(keydata)
+        size_uploaded += len(keydata)
     endtime = time()
   duration = int(endtime) - int(starttime)
   print 'Created ' + str(options.objects) + ' objects (' + str(size_uploaded) + ' bytes) in ' + str(duration) + ' seconds'
+  return True
 
 def downloadTest():
   for bucket in buckets:
@@ -130,11 +151,16 @@ def cleanup():
       skipped += 1
   print 'cleaned ' + str(cleaned) + ' buckets'
   print 'skipped ' + str(skipped) + ' buckets'
+  return True
 
 for i in range(0,options.iterations):
   if not options.cleanall:
     for count in range(0,int(options.buckets)):
-      fillBucket()
+      ret = fillBucket()
+      if not ret:
+        print 'fillBucket() failed, bailing'
+        if not options.noclean: cleanup()
+        sys.exit()
   if options.readtest:
     downloadTest()
   if not options.noclean : cleanup()
