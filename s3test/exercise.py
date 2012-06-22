@@ -37,11 +37,12 @@ if options.file and options.sizes != default_sizes:
   parser.error('options --file and --sizes are mutually exclusive')
 
 if options.file:
-  file = open(options.file,'r')
-  filesize = os.path.getsize(options.file)
-  if not file:
+  try:
+    file = open(options.file,'r')
+  except IOError:
     print 'File ' + options.file + ' does not exist'
     sys.exit()
+  filesize = os.path.getsize(options.file)
 else:
   file = None
 
