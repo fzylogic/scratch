@@ -15,8 +15,9 @@ default_sizes = '1024,10240,102400,1024000,10240000'
 
 parser = optparse.OptionParser()
 parser.add_option('--access', '-a', action='store')
-parser.add_option('--secret', '-s', action='store') 
-parser.add_option('--sizes', '-S', default = default_sizes, action='store', type='string') 
+parser.add_option('--secret', '-s', action='store')
+parser.add_option('--sizes', '-S', default=default_sizes,
+    action='store', type='string')
 parser.add_option('--buckets', '-b', default=1, action='store', type='int')
 parser.add_option('--iterations', '-i', default=1, action='store', type='int')
 parser.add_option('--host', default='objects.dreamhost.com', action='store')
@@ -31,137 +32,148 @@ parser.add_option('--file', '-f', action='store')
 options, remainder = parser.parse_args()
 
 if options.bucket and options.buckets != 1:
-  parser.error('options --bucket and --buckets are mutually exclusive')
+    parser.error('options --bucket and --buckets are mutually exclusive')
 
 if options.file and options.sizes != default_sizes:
-  parser.error('options --file and --sizes are mutually exclusive')
+    parser.error('options --file and --sizes are mutually exclusive')
 
 if options.file:
-  try:
-    file = open(options.file,'r')
-  except IOError:
-    print 'File ' + options.file + ' does not exist'
-    sys.exit()
-  filesize = os.path.getsize(options.file)
+    try:
+        file = open(options.file, 'r')
+    except IOError:
+        print 'File ' + options.file + ' does not exist'
+        sys.exit()
+    filesize = os.path.getsize(options.file)
 else:
-  file = None
+    file = None
 
-conn = S3Connection(options.access,options.secret,host=options.host)
+conn = S3Connection(options.access, options.secret, host=options.host)
 
 data = []
 buckets = []
 keys = {}
 
 for size in options.sizes.split(','):
-  f = open('/dev/urandom','r')
-  data.append(f.read(int(size)))
+    f = open('/dev/urandom', 'r')
+    data.append(f.read(int(size)))
 
-	
+
 def makeBucket():
-  uuid = uuid4()
-  print uuid
-  bucket = conn.create_bucket(str(uuid))
-  buckets.append(bucket)
-  return bucket
+    uuid = uuid4()
+    print uuid
+    bucket = conn.create_bucket(str(uuid))
+    buckets.append(bucket)
+    return bucket
+
 
 def fillBucket():
-  size_uploaded = 0
-  if options.bucket:
-    try:
-      bucket = conn.get_bucket(options.bucket)
-    except S3ResponseError:
-      print 'Error: Cannot find bucket ' + options.bucket
-      sys.exit()
-  else:
-    bucket = makeBucket()
-  if bucket:
-    print 'populating ' + str(bucket)
+    size_uploaded = 0
+    if options.bucket:
+        try:
+            bucket = conn.get_bucket(options.bucket)
+        except:
+            print 'Error: Cannot find bucket ' + options.bucket
+            sys.exit()
+    else:
+        bucket = makeBucket()
+    if bucket:
+        print 'populating ' + str(bucket)
     starttime = time()
     k = Key(bucket)
     k.key = 's3exerciserbucket'
     k.set_contents_from_string('s3exerciserbucket')
-    for count in range(0,options.objects):
-      k = Key(bucket)
-      uuid = uuid4()
-      k.key = str(uuid)
-      if file:
-        k.set_contents_from_file(file)
-        size_uploaded += filesize
-      else:
-        keydata = choice(data)
-        k.set_contents_from_string(keydata)
-        size_uploaded += len(keydata)
-    endtime = time()
-  duration = int(endtime) - int(starttime)
-  print 'Created ' + str(options.objects) + ' objects (' + str(size_uploaded) + ' bytes) in ' + str(duration) + ' seconds'
-  return True
-
-def downloadTest():
-  for bucket in buckets:
-    starttime = time()
-    size_downloaded = 0
-    read = 0
-    for key in bucket.list():
-      if options.verbose: print 'attempting fetch of key ' + str(key)
-      if str(key).endswith(',s3exerciserbucket>'): continue
-      k = bucket.get_key(key)
-      data = k.get_contents_as_string()
-      size_downloaded += len(data)
-      read += 1
+    for count in range(0, options.objects):
+        k = Key(bucket)
+        uuid = uuid4()
+        k.key = str(uuid)
+        if file:
+            k.set_contents_from_file(file)
+            size_uploaded += filesize
+        else:
+            keydata = choice(data)
+            k.set_contents_from_string(keydata)
+            size_uploaded += len(keydata)
     endtime = time()
     duration = int(endtime) - int(starttime)
-    print 'Read ' + str(read) + ' objects (' + str(size_downloaded) + ' bytes) in ' + str(duration) + ' seconds'
+    print 'Created ' + str(options.objects) + ' objects (' +\
+            str(size_uploaded) + ' bytes) in ' + str(duration) + ' seconds'
+    return True
+
+
+def downloadTest():
+    for bucket in buckets:
+        starttime = time()
+        size_downloaded = 0
+        read = 0
+        for key in bucket.list():
+            if options.verbose:
+                print 'attempting fetch of key ' + str(key)
+            if str(key).endswith(',s3exerciserbucket>'):
+                continue
+            k = bucket.get_key(key)
+            data = k.get_contents_as_string()
+            size_downloaded += len(data)
+            read += 1
+    endtime = time()
+    duration = int(endtime) - int(starttime)
+    print 'Read ' + str(read) + ' objects (' + str(size_downloaded) +\
+            ' bytes) in ' + str(duration) + ' seconds'
+
 
 def cleanup():
-  bs = None
-  print 'Cleaning up'
-  cleaned = 0
-  skipped = 0
-  if options.cleanall:
-    if options.bucket:
-      try:
-        b = conn.get_bucket(options.bucket)
-        bs = [b]
-      except S3ResponseError:
-        print 'Error: Cannot find bucket ' + options.bucket
-        sys.exit()
-    else:
-      bs = conn.get_all_buckets()
-  else:
-    bs = buckets
-  for bucket in bs:
-    if bucket.get_key('s3exerciserbucket'):
-      cleaned += 1
-      print ' Cleaning ' + str(bucket)
-      bucket_keys = bucket.list()
-      for key in bucket_keys:
-        if options.verbose: print key
-        bucket.delete_key(key)
-      tries = 1
-      while tries <= 3:
-        try:
-          conn.delete_bucket(bucket)
-        except S3ResponseError:
-          print 'Bucket deletion failed!'
-          tries += 1
-          sleep(10)
+    bs = None
+    print 'Cleaning up'
+    cleaned = 0
+    skipped = 0
+    if options.cleanall:
+        if options.bucket:
+            try:
+                b = conn.get_bucket(options.bucket)
+                bs = [b]
+            except S3ResponseError:
+                print 'Error: Cannot find bucket ' + options.bucket
+                sys.exit()
         else:
-          print 'Bucket deleted successfully after ' + str(tries) + ' attempt(s)'
-          break
+            bs = conn.get_all_buckets()
     else:
-      skipped += 1
-  print 'cleaned ' + str(cleaned) + ' buckets'
-  print 'skipped ' + str(skipped) + ' buckets'
-  return True
+        bs = buckets
+        for bucket in bs:
+            if bucket.get_key('s3exerciserbucket'):
+                cleaned += 1
+                print ' Cleaning ' + str(bucket)
+                bucket_keys = bucket.list()
+                for key in bucket_keys:
+                    if options.verbose:
+                        print key
+                    bucket.delete_key(key)
+                    tries = 1
+                    while tries <= 3:
+                        try:
+                            conn.delete_bucket(bucket)
+                        except S3ResponseError:
+                            print 'Bucket deletion failed!'
+                        tries += 1
+                        sleep(10)
+                    else:
+                        print 'Bucket deleted successfully after ' + \
+                                str(tries) + ' attempt(s)'
+                        break
+            else:
+                skipped += 1
+    print 'cleaned ' + str(cleaned) + ' buckets'
+    print 'skipped ' + str(skipped) + ' buckets'
+    return True
 
-for i in range(0,options.iterations):
-  if not options.cleanall:
-    for count in range(0,int(options.buckets)):
-      ret = fillBucket()
-      if not ret:
-        print 'fillBucket() failed, bailing'
-        if not options.noclean: cleanup()
-        sys.exit()
-  if options.readtest:
-    downloadTest()
-  if not options.noclean : cleanup()
+for i in range(0, options.iterations):
+    if not options.cleanall:
+        for count in range(0, int(options.buckets)):
+            ret = fillBucket()
+            if not ret:
+                print 'fillBucket() failed, bailing'
+                if not options.noclean:
+                    cleanup()
+                sys.exit()
+    if options.readtest:
+        downloadTest()
+    if not options.noclean:
+        cleanup()
