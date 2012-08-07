@@ -17,7 +17,7 @@ parser = optparse.OptionParser()
 parser.add_option('--access', '-a', action='store')
 parser.add_option('--secret', '-s', action='store')
 parser.add_option('--sizes', '-S', default=default_sizes,
-    action='store', type='string')
+                  action='store', type='string')
 parser.add_option('--buckets', '-b', default=1, action='store', type='int')
 parser.add_option('--iterations', '-i', default=1, action='store', type='int')
 parser.add_option('--host', default='objects.dreamhost.com', action='store')
@@ -28,6 +28,7 @@ parser.add_option('--cleanall', action='store_true', default=False)
 parser.add_option('--readtest', action='store_true', default=False)
 parser.add_option('--bucket', action='store')
 parser.add_option('--file', '-f', action='store')
+parser.add_option('--objectcopy', action='store')
 
 options, remainder = parser.parse_args()
 
@@ -58,7 +59,7 @@ for size in options.sizes.split(','):
     data.append(f.read(int(size)))
 
 
-def makeBucket():
+def _make_bucket():
     uuid = uuid4()
     print uuid
     bucket = conn.create_bucket(str(uuid))
@@ -66,7 +67,7 @@ def makeBucket():
     return bucket
 
 
-def fillBucket():
+def _fill_bucket():
     size_uploaded = 0
     if options.bucket:
         try:
@@ -75,7 +76,7 @@ def fillBucket():
             print 'Error: Cannot find bucket ' + options.bucket
             sys.exit()
     else:
-        bucket = makeBucket()
+        bucket = _make_bucket()
     if bucket:
         print 'populating ' + str(bucket)
     starttime = time()
@@ -96,11 +97,19 @@ def fillBucket():
     endtime = time()
     duration = int(endtime) - int(starttime)
     print 'Created ' + str(options.objects) + ' objects (' +\
-            str(size_uploaded) + ' bytes) in ' + str(duration) + ' seconds'
+        str(size_uploaded) + ' bytes) in ' + str(duration) + ' seconds'
     return True
 
 
-def downloadTest():
+def _object_copy(key):
+    try:
+        newkey = uuid4()
+        conn.copy_key(newkey, options.bucket, key)
+    except Exception:
+        print 'cannot copy ' + key + ' to ' + newkey
+
+
+def _download_test():
     for bucket in buckets:
         starttime = time()
         size_downloaded = 0
@@ -117,10 +126,10 @@ def downloadTest():
     endtime = time()
     duration = int(endtime) - int(starttime)
     print 'Read ' + str(read) + ' objects (' + str(size_downloaded) +\
-            ' bytes) in ' + str(duration) + ' seconds'
+        ' bytes) in ' + str(duration) + ' seconds'
 
 
-def cleanup():
+def _cleanup():
     bs = None
     print 'Cleaning up'
     cleaned = 0
@@ -156,7 +165,7 @@ def cleanup():
                         sleep(10)
                     else:
                         print 'Bucket deleted successfully after ' + \
-                                str(tries) + ' attempt(s)'
+                            str(tries) + ' attempt(s)'
                         break
             else:
                 skipped += 1
@@ -166,14 +175,17 @@ def cleanup():
 
 for i in range(0, options.iterations):
     if not options.cleanall:
-        for count in range(0, int(options.buckets)):
-            ret = fillBucket()
-            if not ret:
-                print 'fillBucket() failed, bailing'
-                if not options.noclean:
-                    cleanup()
-                sys.exit()
+        if options.objectcopy:
+            _object_copy(options.objectcopy)
+        else:
+            for count in range(0, int(options.buckets)):
+                ret = _fill_bucket()
+                if not ret:
+                    print '_fill_bucket() failed, bailing'
+                    if not options.noclean:
+                        _cleanup()
+                    sys.exit()
     if options.readtest:
-        downloadTest()
+        _download_test()
     if not options.noclean:
-        cleanup()
+        _cleanup()
