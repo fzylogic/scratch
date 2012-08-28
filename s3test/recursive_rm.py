@@ -28,13 +28,16 @@ elif options.allbuckets:
     buckets = conn.get_all_buckets()
 
 for bucket in buckets:
-    for key in bucket.list():
-        print 'deleting ' + key.name
-        try:
-            bucket.delete_key(key)
-        except S3ResponseError:
-            print 'cannot delete key ' + key.name
-            continue
+    try:
+        for key in bucket.list():
+            print 'deleting ' + key.name
+            try:
+                bucket.delete_key(key)
+            except S3ResponseError:
+                print 'cannot delete key ' + key.name
+                continue
+    except S3ResponseError:
+        print 'cannot list bucket ' + bucket.name
 
     print 'deleting bucket ' + bucket.name
     try:
