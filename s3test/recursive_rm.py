@@ -29,9 +29,9 @@ elif options.allbuckets:
 for bucket in buckets:
     for key in bucket.list():
         print 'deleting ' + key.name
-        #bucket.delete_key(key)
+        bucket.delete_key(key)
 
     print 'deleting bucket ' + bucket.name
-    #conn.delete_bucket(bucket)
+    conn.delete_bucket(bucket)
 
 print 'Done.'
