@@ -1,4 +1,5 @@
 from boto.s3.connection import S3Connection
+from boto.exception import S3ResponseError
 import optparse
 import sys
 
@@ -29,9 +30,17 @@ elif options.allbuckets:
 for bucket in buckets:
     for key in bucket.list():
         print 'deleting ' + key.name
-        bucket.delete_key(key)
+        try:
+            bucket.delete_key(key)
+        except S3ResponseError:
+            print 'cannot delete key ' + key.name
+            continue
 
     print 'deleting bucket ' + bucket.name
-    conn.delete_bucket(bucket)
+    try:
+        conn.delete_bucket(bucket)
+    except S3ResponseError:
+        print 'cannot delete bucket ' + bucket.name
+        continue
 
 print 'Done.'
